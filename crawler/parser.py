@@ -12,6 +12,8 @@ def parse_best_sellers(html: str, limit: int = 5) -> List[Dict]:
     """
     soup = BeautifulSoup(html, "lxml")
 
+    print("Hello World !")
+
     # This selector may need adjustment depending on Amazon layout.
     # Commonly best-seller or listing cards have data-asin attribute.
     product_cards = soup.select("div[data-asin]")
