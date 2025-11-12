@@ -1,8 +1,8 @@
-# AI-Enhanced Amazon Top 5 Crawler (Local Prototype)
+# AI-Enhanced Crawler (Local Prototype for Amazon Top 5 Products)
 
 This is a small, local prototype of an **AI-enhanced web crawler + transformer**:
 
-- Uses **Playwright** to fetch an Amazon Best Sellers page.
+- Uses **Playwright** to fetch an Amazon Best Sellers page (Amazon is the first example)
 - Uses a **local LLM (Ollama + Llama 3)** to extract structured product data from HTML.
 - Saves the **top 5 products** as JSON.
 - Transforms the JSON into a clean **CSV** file.
