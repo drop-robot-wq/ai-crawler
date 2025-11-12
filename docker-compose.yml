@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+  crawler:
+    build: .
+    container_name: ai_crawler
+    working_dir: /app
+    depends_on:
+      - ollama
+    volumes:
+      - ./data:/app/data
+      - ./crawler:/app/crawler
+      - ./transformer:/app/transformer
+    environment:
+      # You can change this to any Amazon Best Sellers page
+      - TARGET_URL=https://www.amazon.com/Best-Sellers/zgbs
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=llama3
+    command: >
+      bash -c "
+        echo 'Waiting a bit for Ollama...' &&
+        sleep 10 &&
+        echo 'Make sure you pulled the model: ollama run llama3 (host) or /api/pull' &&
+        python -m crawler.crawler &&
+        python -m transformer.transformer
+      "
+
+volumes:
+  ollama_models:

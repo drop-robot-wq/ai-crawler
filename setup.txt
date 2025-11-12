@@ -1,0 +1,53 @@
+* Start Ollama Service
+
+Docker Compose will run an ollama service.
+You must pull the model at least once:
+
+docker compose up -d ollama
+OR
+docker exec -it ollama ollama pull llama3
+
+
+* Build and Run the Crawler + Transformer
+
+docker compose up --build
+
+This will:
+
+	Start the ollama container.
+
+	Start the crawler container.
+
+	The crawler will:
+
+		Fetch the Best Sellers page (TARGET_URL env).
+
+		Use AI to extract the top 5 product cards.
+
+		Save a JSON file in data/raw/.
+
+	The transformer will:
+
+		Load the latest JSON file.
+
+		Clean and normalize some fields.
+
+		Save a CSV file in data/processed/
+
+
+
+* Inspect Outputs
+
+JSON (raw extracted data)
+
+	ls data/raw
+	cat data/raw/products_*.json
+
+
+CSV (transformed data)
+
+	ls data/processed
+	cat data/processed/products_*.csv
+
+
+

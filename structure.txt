@@ -1,0 +1,18 @@
+ai-crawler/
+├─ docker-compose.yml
+├─ Dockerfile
+├─ requirements.txt
+├─ README.md
+├─ crawler/
+│  ├─ __init__.py
+│  ├─ config.py
+│  ├─ fetcher.py
+│  ├─ ai_extractor.py
+│  ├─ parser.py
+│  └─ crawler.py
+├─ transformer/
+│  ├─ __init__.py
+│  └─ transformer.py
+└─ data/
+   ├─ raw/
+   └─ processed/
