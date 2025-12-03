@@ -1,9 +1,10 @@
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from .ai_extractor import extract_product_from_html
+from .config import PRODUCT_LIMIT
 
 
-def parse_best_sellers(html: str, limit: int = 5) -> List[Dict]:
+def parse_best_sellers(html: str, limit=PRODUCT_LIMIT) -> List[Dict]:
     """
     Parse HTML and extract top N product entries using AI-based extraction.
 
@@ -26,8 +27,9 @@ def parse_best_sellers(html: str, limit: int = 5) -> List[Dict]:
     products: List[Dict] = []
 
     for idx, card in enumerate(product_cards[:limit]):
-        print(f"[Parser] Processing product card {idx+1}...")
+        print(f"[Parser] Processing product card {idx+1}/{limit} ...")
         html_snippet = str(card)
+        html_snippet = html_snippet[:4000]
         product = extract_product_from_html(html_snippet)
         products.append(product)
 

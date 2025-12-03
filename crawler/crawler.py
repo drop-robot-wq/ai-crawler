@@ -1,5 +1,5 @@
 import json
-from .config import TARGET_URL, RAW_JSON_PATH
+from .config import TARGET_URL, RAW_JSON_PATH, PRODUCT_LIMIT
 from .fetcher import fetch_page_html
 from .parser import parse_best_sellers
 
@@ -9,7 +9,7 @@ def run_crawler():
     html = fetch_page_html(TARGET_URL)
 
     print("[Crawler] Parsing and extracting top 5 products with AI...")
-    products = parse_best_sellers(html, limit=5)
+    products = parse_best_sellers(html, limit=PRODUCT_LIMIT)
 
     print(f"[Crawler] Extracted {len(products)} products.")
     RAW_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
