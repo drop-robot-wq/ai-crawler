@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-crawler
+  namespace: infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-crawler
+  template:
+    metadata:
+      labels:
+        app: ai-crawler
+    spec:
+      containers:
+      - name: ai-crawler
+        image: nexus.infra.svc.cluster.local:8083/ai-crawler:latest
+        imagePullPolicy: Always
+        env:
+        - name: TARGET_URL
+          value: "https://www.amazon.com/Best-Sellers/zgbs"
+        - name: OLLAMA_HOST
+          value: "http://ollama:11434"
+        - name: OLLAMA_MODEL
+          value: "llama3"
+        ports:
+        - containerPort: 8080
