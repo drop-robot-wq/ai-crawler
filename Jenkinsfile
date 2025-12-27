@@ -36,13 +36,12 @@ spec:
   options {
     timestamps()
     disableConcurrentBuilds()
-    ansiColor('xterm')
+    skipDefaultCheckout(true)
   }
 
   environment {
-    // Adapter à ton registry + repo
-    REGISTRY   = "nexus.drop-robot.com"        // ex: nexus / gcr / ghcr
-    IMAGE_NAME = "drop-robot/crawler"          // ex: org/projet
+    REGISTRY   = "nexus.drop-robot.com"
+    IMAGE_NAME = "drop-robot/crawler"
     IMAGE_TAG  = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
     IMAGE      = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
   }
@@ -58,11 +57,10 @@ spec:
       steps {
         container('py') {
           sh '''
+            set -eux
             python -V
             pip install -U pip
             if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            # si poetry:
-            # pip install poetry && poetry install --no-interaction
           '''
         }
       }
@@ -72,7 +70,7 @@ spec:
       steps {
         container('py') {
           sh '''
-            # adapte si tu utilises ruff/flake8/black
+            set -eux
             pip install -U ruff
             ruff check .
           '''
@@ -84,6 +82,7 @@ spec:
       steps {
         container('py') {
           sh '''
+            set -eux
             pip install -U pytest
             pytest -q
           '''
@@ -95,6 +94,7 @@ spec:
       steps {
         container('kaniko') {
           sh '''
+            set -eux
             /kaniko/executor \
               --context "${WORKSPACE}" \
               --dockerfile "${WORKSPACE}/Dockerfile" \
@@ -106,14 +106,12 @@ spec:
       }
     }
 
-    stage('Push Image (main only)') {
-      when {
-        branch 'main'
-      }
+    stage('Tag latest (main only)') {
+      when { branch 'main' }
       steps {
-        // Kaniko push déjà via --destination, donc ici on fait juste un "tag latest" optionnel
         container('kaniko') {
           sh '''
+            set -eux
             /kaniko/executor \
               --context "${WORKSPACE}" \
               --dockerfile "${WORKSPACE}/Dockerfile" \
