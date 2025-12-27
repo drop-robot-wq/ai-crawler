@@ -7,7 +7,7 @@ This is a small, local prototype of an **AI-enhanced web crawler + transformer**
 - Saves the **top 5 products** as JSON.
 - Transforms the JSON into a clean **CSV** file.
 
-This iis the first brick of a larger **AI web crawler + Product Intelligence Database (PIDB)** project.
+This is the first brick of a larger **AI web crawler + Product Intelligence Database (PIDB)** project.
 
 ---
 
