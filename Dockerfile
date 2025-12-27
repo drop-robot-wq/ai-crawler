@@ -2,17 +2,20 @@ FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
 
 WORKDIR /app
 
-# Install Python deps
+# --- Python deps (cache friendly) ---
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
+# --- Playwright browsers ---
 RUN python -m playwright install --with-deps chromium
 
-# Copy source code
+# --- App code ---
 COPY crawler/ ./crawler/
 COPY transformer/ ./transformer/
-COPY data/ ./data/
+
+# --- Runtime data directory (do not COPY if it may not exist in the repo) ---
+RUN mkdir -p /app/data
 
 ENV PYTHONUNBUFFERED=1
 
