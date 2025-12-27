@@ -1,83 +1,134 @@
 pipeline {
-    agent any
+  agent {
+    kubernetes {
+      namespace 'jobs'
+      defaultContainer 'py'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins-agent
+  nodeSelector:
+    cloud.google.com/gke-nodepool: jobs-pool
+  containers:
+    - name: py
+      image: python:3.12-slim
+      command: ['sh', '-c', 'cat']
+      tty: true
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: ['/busybox/cat']
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: nexus-regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+"""
+    }
+  }
 
-    environment {
-        PROJECT_ID     = "${GCP_PROJECT}"
-        REGION         = "${GCP_REGION}"
-        CLUSTER        = "${GKE_CLUSTER}"
-        NAMESPACE      = "${K8S_NAMESPACE}"
-        IMAGE_NAME     = "${IMAGE_NAME}"
-        NEXUS_URL      = "${NEXUS_URL}"
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    ansiColor('xterm')
+  }
 
-        // Auto-tag = branch + short commit
-        GIT_TAG = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}"
+  environment {
+    // Adapter à ton registry + repo
+    REGISTRY   = "nexus.drop-robot.com"        // ex: nexus / gcr / ghcr
+    IMAGE_NAME = "drop-robot/crawler"          // ex: org/projet
+    IMAGE_TAG  = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+    IMAGE      = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
 
-    stages {
-
-        /* -------------------------------
-         *  1️⃣ INTEGRATION
-         *  ------------------------------- */
-        stage('Integration') {
-            steps {
-                echo "Running tests, linting, validating project..."
-
-                sh """
-                python3 -m pip install -r requirements.txt
-                python3 -m pytest || true
-                """
-            }
+    stage('Install') {
+      steps {
+        container('py') {
+          sh '''
+            python -V
+            pip install -U pip
+            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            # si poetry:
+            # pip install poetry && poetry install --no-interaction
+          '''
         }
-
-        /* -------------------------------
-         *  2️⃣ REGISTRY (Docker build + Push)
-         *  ------------------------------- */
-        stage('Build & Push Image') {
-            steps {
-                script {
-                    docker.withRegistry("http://${NEXUS_URL}", "${NEXUS_CREDENTIAL_ID}") {
-
-                        sh """
-                        echo "Building Docker image..."
-                        docker build -t ${NEXUS_URL}/${IMAGE_NAME}:${GIT_TAG} .
-
-                        echo "Tagging last version..."
-                        docker tag ${NEXUS_URL}/${IMAGE_NAME}:${GIT_TAG} ${NEXUS_URL}/${IMAGE_NAME}:latest
-
-                        echo "Pushing image to Nexus..."
-                        docker push ${NEXUS_URL}/${IMAGE_NAME}:${GIT_TAG}
-                        docker push ${NEXUS_URL}/${IMAGE_NAME}:latest
-                        """
-                    }
-                }
-            }
-        }
-
-        /* -------------------------------
-         *  3️⃣ DEPLOYMENT (GKE)
-         *  ------------------------------- */
-        stage("Deploy to GKE") {
-            steps {
-                withCredentials([file(credentialsId: "${GCLOUD_SA_KEY}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
-
-                    sh """
-                    echo "Authenticating to GCloud..."
-                    gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-
-                    gcloud config set project ${PROJECT_ID}
-                    gcloud config set compute/region ${REGION}
-
-                    echo "Fetching kubeconfig..."
-                    gcloud container clusters get-credentials ${CLUSTER} --region ${REGION}
-
-                    echo "Updating Deployment image..."
-                    kubectl -n ${NAMESPACE} set image deployment/ai-crawler ai-crawler=${NEXUS_URL}/${IMAGE_NAME}:${GIT_TAG}
-
-                    echo "Applying Kubernetes manifests..."
-                    kubectl apply -f k8s/
-                    """
-                }
-            }
-        }
+      }
     }
+
+    stage('Lint') {
+      steps {
+        container('py') {
+          sh '''
+            # adapte si tu utilises ruff/flake8/black
+            pip install -U ruff
+            ruff check .
+          '''
+        }
+      }
+    }
+
+    stage('Tests') {
+      steps {
+        container('py') {
+          sh '''
+            pip install -U pytest
+            pytest -q
+          '''
+        }
+      }
+    }
+
+    stage('Build Image (Kaniko)') {
+      steps {
+        container('kaniko') {
+          sh '''
+            /kaniko/executor \
+              --context "${WORKSPACE}" \
+              --dockerfile "${WORKSPACE}/Dockerfile" \
+              --destination "${IMAGE}" \
+              --cache=true \
+              --cache-ttl=24h
+          '''
+        }
+      }
+    }
+
+    stage('Push Image (main only)') {
+      when {
+        branch 'main'
+      }
+      steps {
+        // Kaniko push déjà via --destination, donc ici on fait juste un "tag latest" optionnel
+        container('kaniko') {
+          sh '''
+            /kaniko/executor \
+              --context "${WORKSPACE}" \
+              --dockerfile "${WORKSPACE}/Dockerfile" \
+              --destination "${REGISTRY}/${IMAGE_NAME}:latest" \
+              --cache=true \
+              --cache-ttl=24h
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "Built image: ${env.IMAGE}"
+    }
+  }
 }
