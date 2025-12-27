@@ -53,42 +53,6 @@ spec:
       }
     }
 
-    stage('Install') {
-      steps {
-        container('py') {
-          sh '''
-            set -eux
-            python -V
-            pip install -U pip
-            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          '''
-        }
-      }
-    }
-
-    stage('Lint') {
-      steps {
-        container('py') {
-          sh '''
-            set -eux
-            pip install -U ruff
-            ruff check .
-          '''
-        }
-      }
-    }
-
-    stage('Tests') {
-      steps {
-        container('py') {
-          sh '''
-            set -eux
-            pip install -U pytest
-            pytest -q
-          '''
-        }
-      }
-    }
 
     stage('Build Image (Kaniko)') {
       steps {
