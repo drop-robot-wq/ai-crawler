@@ -1,4 +1,4 @@
-pipeline {
+  pipeline {
   agent {
     kubernetes {
       namespace 'jobs'
@@ -40,7 +40,7 @@ spec:
   }
 
   environment {
-    REGISTRY   = "nexus.drop-robot.com"
+    REGISTRY   = "registry.drop-robot.com"
     IMAGE_NAME = "drop-robot/crawler"
     IMAGE_TAG  = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
     IMAGE      = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
