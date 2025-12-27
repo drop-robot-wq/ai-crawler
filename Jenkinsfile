@@ -12,7 +12,7 @@ spec:
     cloud.google.com/gke-nodepool: jobs-pool
   containers:
     - name: py
-      image: python:3.12-slim
+      image: python:3.12
       command: ['sh', '-c', 'cat']
       tty: true
     - name: kaniko
